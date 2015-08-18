@@ -1,6 +1,8 @@
 (require 'robe)
 (require 'projectile-rails)
 
+(setq robe-port 24969)
+
 (defvar projectile-rails-robe-port-hash-table (make-hash-table :test 'equal))
 
 (defun projectile-rails-robe-get-port ()
@@ -39,7 +41,7 @@ When called with a prefix argument, kills the current Ruby
 process, if any, and starts a new console for the current
 project."
   (interactive "P")
-  (let* ((ruby-buffer (and inf-ruby-buffer
+  (let* ((ruby-buffer (and inf-ruby-buffer (or (not (projectile-rails-root)) (string= inf-ruby-buffer (concat "*" (projectile-project-name) "railsconsole*")))
                            (get-buffer inf-ruby-buffer)))
          (process (get-buffer-process ruby-buffer)))
     (when (or force (not process))
