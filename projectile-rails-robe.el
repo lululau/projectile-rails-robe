@@ -6,7 +6,7 @@
 (defvar projectile-rails-robe-port-hash-table (make-hash-table :test 'equal))
 
 (defun projectile-rails-robe-get-port ()
-  (let* ((projectile-rails-root (projectile-rails-root))
+  (let* ((projectile-rails-root (or (projectile-rails-root) (and inf-ruby-buffer (with-current-buffer (get-buffer inf-ruby-buffer) (projectile-rails-root)))))
          (port (gethash projectile-rails-root projectile-rails-robe-port-hash-table)))
     (or port
         (puthash projectile-rails-root
@@ -15,7 +15,7 @@
                        robe-port)) projectile-rails-robe-port-hash-table))))
 
 (defun robe-port ()
-  (if (projectile-rails-root)
+  (if (or (projectile-rails-root) (and inf-ruby-buffer (with-current-buffer (get-buffer inf-ruby-buffer) (projectile-rails-root))))
       (projectile-rails-robe-get-port)
     robe-port))
 
@@ -34,6 +34,11 @@
       (projectile-rails-console)
     (run-pry)))
 
+(defun get-ruby-buffer()
+  (if (projectile-rails-root)
+      (format "**%srailsconsole**" (projectile-project-name))
+    (if (and inf-ruby-buffer (with-current-buffer (get-buffer inf-ruby-buffer) (projectile-rails-root)))
+        inf-ruby-buffer)))
 
 (defun robe-start (&optional force)
   "Start Robe server if it isn't already running.
@@ -41,8 +46,7 @@ When called with a prefix argument, kills the current Ruby
 process, if any, and starts a new console for the current
 project."
   (interactive "P")
-  (let* ((ruby-buffer (and inf-ruby-buffer (or (not (projectile-rails-root)) (string= inf-ruby-buffer (concat "**" (projectile-project-name) "railsconsole**")))
-                           (get-buffer inf-ruby-buffer)))
+  (let* ((ruby-buffer (get-ruby-buffer))
          (process (get-buffer-process ruby-buffer)))
     (when (or force (not process))
       (setq robe-running nil)
@@ -89,7 +93,6 @@ project."
         (set-process-filter proc comint-filter)))
     (when (robe-request "ping") ;; Should be always t when no error, though.
       (setq robe-running t))))
-
 
 (defun robe-request (endpoint &rest args)
   (declare (special url-http-end-of-headers))
